@@ -1,5 +1,5 @@
-// Right-click context menu. Records which panel was targeted.
-// Config/theme dialogs are stubbed for v0 (wired in a later phase).
+// Right-click context menu. Records which panel was targeted and dispatches
+// to the dialog handlers in App.
 
 import { useEffect } from 'react';
 
@@ -13,39 +13,54 @@ export interface MenuState {
 interface Props {
   menu: MenuState;
   onClose: () => void;
+  onConfigure: (path: string) => void;
+  onChangeTheme: () => void;
+  onChangeColors: () => void;
   onNewRandomBoard: () => void;
+  onNewBoardWithParams: () => void;
 }
 
-export function ContextMenu({ menu, onClose, onNewRandomBoard }: Props) {
+export function ContextMenu({
+  menu,
+  onClose,
+  onConfigure,
+  onChangeTheme,
+  onChangeColors,
+  onNewRandomBoard,
+  onNewBoardWithParams,
+}: Props) {
   useEffect(() => {
     const close = () => onClose();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('click', close);
-    window.addEventListener('keydown', (e) => e.key === 'Escape' && onClose());
-    return () => window.removeEventListener('click', close);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('keydown', onKey);
+    };
   }, [onClose]);
 
-  const stub = (label: string) => () => {
-    // eslint-disable-next-line no-alert
-    alert(`${label} — coming in a later phase.\nTarget: ${menu.panelType ?? 'board'} @ ${menu.panelPath ?? '-'}`);
+  const run = (fn: () => void) => () => {
+    fn();
     onClose();
   };
 
+  // Keep the menu within the viewport.
+  const style: React.CSSProperties = {
+    left: Math.min(menu.x, window.innerWidth - 220),
+    top: Math.min(menu.y, window.innerHeight - 210),
+  };
+
   return (
-    <div className="context-menu" style={{ left: menu.x, top: menu.y }} onClick={(e) => e.stopPropagation()}>
-      <button onClick={stub('Configure...')} disabled={!menu.panelPath}>
+    <div className="context-menu" style={style} onClick={(e) => e.stopPropagation()}>
+      <button onClick={run(() => menu.panelPath && onConfigure(menu.panelPath))} disabled={!menu.panelPath}>
         Configure{menu.panelType ? ` ${menu.panelType}` : ''}…
       </button>
-      <button onClick={stub('Change theme...')}>Change theme…</button>
-      <button onClick={stub('Change theme colors...')}>Change theme colors…</button>
-      <button
-        onClick={() => {
-          onNewRandomBoard();
-          onClose();
-        }}
-      >
-        New random board
-      </button>
-      <button onClick={stub('New board with parameters...')}>New board with parameters…</button>
+      <button onClick={run(onChangeTheme)}>Change theme…</button>
+      <button onClick={run(onChangeColors)}>Change theme colors…</button>
+      <div className="context-sep" />
+      <button onClick={run(onNewRandomBoard)}>New random board</button>
+      <button onClick={run(onNewBoardWithParams)}>New board with parameters…</button>
     </div>
   );
 }
