@@ -1,8 +1,9 @@
 // Core data model for the Panels board tree.
 // See docs/tech-spec.md §5.1.
 
-export type TextPos = 't' | 'b' | 'c';
-export type ButtonTextPos = 't' | 'b';
+export type TextPos = 't' | 'b' | 'c'; // top, bottom, center
+// Buttons can also place text on their face (center), above (top), or below (bottom).
+export type ButtonTextPos = TextPos;
 
 export type Panel =
   | { type: 'blank' }

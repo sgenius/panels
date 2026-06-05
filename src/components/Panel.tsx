@@ -5,13 +5,13 @@ import { BlankPanel } from './panels/BlankPanel';
 import { LedPanel } from './panels/LedPanel';
 import { ButtonPanel } from './panels/ButtonPanel';
 
-export function PanelView({ panel }: { panel: Panel }) {
+export function PanelView({ panel, level }: { panel: Panel; level: number }) {
   switch (panel.type) {
     case 'blank':
       return <BlankPanel />;
     case 'led':
-      return <LedPanel panel={panel} />;
+      return <LedPanel panel={panel} level={level} />;
     case 'button':
-      return <ButtonPanel panel={panel} />;
+      return <ButtonPanel panel={panel} level={level} />;
   }
 }

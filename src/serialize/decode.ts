@@ -46,7 +46,7 @@ function parsePanel(token: string): Panel {
         opacity: parts[0] === 'o' ? 'opaque' : 'transparent',
         litColor: parts[1] === 'x' ? null : Number(parts[1]),
         text: unescapeText(parts[2] ?? ''),
-        textPos: (parts[3] as 't' | 'b') ?? 'b',
+        textPos: (parts[3] as 't' | 'b' | 'c') ?? 'b',
         sharedTextKey: '',
       };
     default:

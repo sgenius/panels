@@ -180,7 +180,7 @@ function ButtonForm({ panel, colors, onApply, onClose }: { panel: ButtonPanel } 
         <input type="text" value={text} maxLength={12} onChange={(e) => setText(e.target.value)} placeholder="(none)" />
       </Field>
       <Field label="Text position">
-        <PosSelect value={textPos} onChange={setTextPos} options={['t', 'b']} />
+        <PosSelect value={textPos} onChange={setTextPos} options={['t', 'b', 'c']} />
       </Field>
     </Dialog>
   );

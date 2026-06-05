@@ -92,6 +92,13 @@ src/
   interpolated → snaps) and its glow `box-shadow` (color IS interpolated) must NOT have
   a CSS transition — otherwise on a color change the glow lags a different color than
   the bulb. LEDs snap on/off intentionally.
+- **Panel text & layout** (`Frame.tsx`, `panels/util.ts`, `theme.css`): the panel is a
+  CSS size container (`container-type: size`); circular/inner elements are sized in
+  `cqmin`/`cqw`/`cqh` and buttons use `%` padding so nothing clips the panel border at
+  any cell size. Label font size (`--label-size`, set per-leaf by level) is larger on
+  levels 0–1 and graduates down with depth. Text position is forced to center for
+  panels at level > 2 (`effectiveTextPos`). Buttons render text on their face when the
+  effective position is center; above/below for top/bottom.
 
 ## Serialization (most correctness-sensitive code)
 

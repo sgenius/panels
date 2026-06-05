@@ -4,6 +4,7 @@
 
 import type { Panel, TextPos } from '../../board/model';
 import { useRuntime } from '../../runtime/store';
+import { effectiveTextPos } from './util';
 
 type LedPanelData = Extract<Panel, { type: 'led' }>;
 
@@ -24,7 +25,7 @@ function Label({ text, pos, at }: { text: string; pos: TextPos; at: TextPos }) {
   return <span className="panel-label">{text}</span>;
 }
 
-export function LedPanel({ panel }: { panel: LedPanelData }) {
+export function LedPanel({ panel, level }: { panel: LedPanelData; level: number }) {
   // Subscribe only to the slice that drives this LED.
   const driver = useRuntime((s) =>
     panel.mode === 'regular' ? s.registry[panel.registryIndex] : s.tick,
@@ -43,7 +44,7 @@ export function LedPanel({ panel }: { panel: LedPanelData }) {
   }
 
   const on = colorIndex >= 0;
-  const pos = panel.textPos;
+  const pos = effectiveTextPos(panel.textPos, level);
 
   return (
     <div className="panel panel-led">

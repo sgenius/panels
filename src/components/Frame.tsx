@@ -17,14 +17,22 @@ function plateAngle(path: string): string {
 
 export function Frame({ node, path }: { node: FrameNode; path: string }) {
   if (node.kind === 'leaf') {
+    // Larger labels on big panels (levels 0-1), graduated smaller as cells shrink
+    // with depth so deep panels don't overflow.
+    const labelSize =
+      node.level <= 1 ? '1.05rem' : node.level === 2 ? '0.72rem' : node.level === 3 ? '0.6rem' : '0.5rem';
     return (
       <div
         className="frame-leaf"
         data-panel-path={path}
         data-panel-type={node.panel.type}
-        style={{ ['--plate-angle' as string]: plateAngle(path) }}
+        data-level={node.level}
+        style={{
+          ['--plate-angle' as string]: plateAngle(path),
+          ['--label-size' as string]: labelSize,
+        }}
       >
-        <PanelView panel={node.panel} />
+        <PanelView panel={node.panel} level={node.level} />
       </div>
     );
   }

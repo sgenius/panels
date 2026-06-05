@@ -5,6 +5,7 @@
 import { useEffect } from 'react';
 import type { Panel } from '../../board/model';
 import { useRuntime } from '../../runtime/store';
+import { effectiveTextPos } from './util';
 
 type ButtonPanelData = Extract<Panel, { type: 'button' }>;
 
@@ -12,7 +13,7 @@ function colorVar(index: number): string {
   return `var(--color-${index})`;
 }
 
-export function ButtonPanel({ panel }: { panel: ButtonPanelData }) {
+export function ButtonPanel({ panel, level }: { panel: ButtonPanelData; level: number }) {
   const on = useRuntime((s) => !!s.buttonOn[panel.sharedTextKey]);
   const text = useRuntime((s) => s.sharedText[panel.sharedTextKey] ?? panel.text);
   const toggle = useRuntime((s) => s.toggleButton);
@@ -29,6 +30,9 @@ export function ButtonPanel({ panel }: { panel: ButtonPanelData }) {
       ? ({ ['--lit-color' as string]: colorVar(panel.litColor) })
       : undefined;
 
+  const pos = effectiveTextPos(panel.textPos, level);
+  const onFace = pos === 'c';
+
   const classes = [
     'button',
     panel.opacity === 'transparent' ? 'transparent' : 'opaque',
@@ -39,15 +43,17 @@ export function ButtonPanel({ panel }: { panel: ButtonPanelData }) {
 
   return (
     <div className="panel panel-button">
-      {panel.textPos === 't' && text ? <span className="panel-label">{text}</span> : null}
+      {pos === 't' && text ? <span className="panel-label">{text}</span> : null}
       <button
         type="button"
         className={classes}
         style={litStyle}
         onClick={() => toggle(panel.sharedTextKey)}
         aria-label={text}
-      />
-      {panel.textPos === 'b' && text ? <span className="panel-label">{text}</span> : null}
+      >
+        {onFace && text ? <span className="button-face">{text}</span> : null}
+      </button>
+      {pos === 'b' && text ? <span className="panel-label">{text}</span> : null}
     </div>
   );
 }

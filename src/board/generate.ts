@@ -125,7 +125,7 @@ function makeButton(ctx: GenContext, idCounter: { n: number }): Panel {
     opacity,
     litColor,
     text: randomText(rng),
-    textPos: rng.pick(['t', 'b'] as const),
+    textPos: rng.pick(['t', 'b', 'c'] as const),
     sharedTextKey: `btn-${idCounter.n++}`,
   };
 }
