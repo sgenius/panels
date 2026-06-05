@@ -26,11 +26,25 @@ export const useRuntime = create<RuntimeState>((set) => ({
   buttonOn: {},
   sharedText: {},
   advance: (rng) =>
-    set((s) => ({
-      tick: s.tick >= TICK_MAX ? 0 : s.tick + 1,
-      // v0: registry values change randomly each tick.
-      registry: s.registry.map(() => Math.floor(rng() * (REGISTRY_MAX + 1))),
-    })),
+    set((s) => {
+      const tick = s.tick >= TICK_MAX ? 0 : s.tick + 1;
+      const reg = s.registry.slice();
+      const counterIdx = reg.length - 1; // last value is a steady counter
+      const poolSize = counterIdx; // indices 0..counterIdx-1 are the random pool
+
+      // Last value: a counter, +1 each tick, wrapping at REGISTRY_MAX.
+      reg[counterIdx] = reg[counterIdx] >= REGISTRY_MAX ? 0 : reg[counterIdx] + 1;
+
+      // Change 1, 2, or 3 of the pool values this tick; index 0 always changes.
+      const changeCount = 1 + Math.floor(rng() * 3); // 1..3
+      const chosen = new Set<number>([0]);
+      while (chosen.size < changeCount && chosen.size < poolSize) {
+        chosen.add(Math.floor(rng() * poolSize)); // 0..poolSize-1
+      }
+      for (const i of chosen) reg[i] = Math.floor(rng() * (REGISTRY_MAX + 1));
+
+      return { tick, registry: reg };
+    }),
   toggleButton: (key) => set((s) => ({ buttonOn: { ...s.buttonOn, [key]: !s.buttonOn[key] } })),
   setSharedText: (key, text) => set((s) => ({ sharedText: { ...s.sharedText, [key]: text } })),
   reset: () => set({ tick: 0, registry: freshRegistry(), buttonOn: {}, sharedText: {} }),

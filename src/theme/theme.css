@@ -117,7 +117,9 @@ body,
   border-radius: 50%;
   background: #0a0a0a;
   box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.1);
-  transition: background 120ms linear, box-shadow 120ms linear;
+  /* No color transition: the gradient background snaps instantly while box-shadow
+     would interpolate, making the glow lag a different color from the bulb. LEDs
+     snap on/off, which also suits the control-panel look. */
 }
 
 .led-bulb.on {
