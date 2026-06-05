@@ -3,7 +3,7 @@ import { encodeBoard } from './encode';
 import { decodeBoard } from './decode';
 import { generateBoard } from '../board/generate';
 import { makeRng } from '../board/prng';
-import { DEFAULT_GENERATION_PARAMS } from '../board/model';
+import { DEFAULT_GENERATION_PARAMS, type FrameNode } from '../board/model';
 
 describe('serialization round-trip (DFS, self-delimiting)', () => {
   it('matches the worked example from the tech spec', () => {
@@ -49,5 +49,35 @@ describe('serialization round-trip (DFS, self-delimiting)', () => {
 
   it('rejects trailing tokens', () => {
     expect(() => decodeBoard('X-X-')).toThrow();
+  });
+
+  it('escapes delimiters and URL-special chars in panel text', () => {
+    const nasty = "A-B!C;D&E=F/G:H I#J%K'L(M)~N";
+    const root: FrameNode = {
+      kind: 'leaf',
+      level: 0,
+      panel: {
+        type: 'button',
+        opacity: 'opaque',
+        litColor: null,
+        text: nasty,
+        textPos: 'b',
+        sharedTextKey: '',
+      },
+    };
+    const s = encodeBoard(root);
+
+    // The encoded text region must not contain our delimiters ('-' '!' ';') or
+    // URL-breaking characters ('&' '=' '/' ':' '#' '?' whitespace). Characters
+    // encodeURIComponent leaves alone (' ( ) ~) are harmless in a URL fragment.
+    const textRegion = s.slice(0, -1).split('!')[2]; // Bo ! x ! <text> ! b
+    expect(textRegion).not.toMatch(/[-!;&=/:#?\s]/);
+
+    // ...and it round-trips back to the exact original string.
+    const tree = decodeBoard(s);
+    expect(tree.kind).toBe('leaf');
+    if (tree.kind === 'leaf' && tree.panel.type === 'button') {
+      expect(tree.panel.text).toBe(nasty);
+    }
   });
 });

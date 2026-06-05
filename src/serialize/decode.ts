@@ -3,6 +3,7 @@
 // See docs/tech-spec.md §5.8.
 
 import type { FrameNode, Panel } from '../board/model';
+import { unescapeText } from './textCodec';
 
 function bitsToPattern(bits: string): boolean[] {
   return bits.split('').map((c) => c === '1');
@@ -25,7 +26,7 @@ function parsePanel(token: string): Panel {
         mode: 'rhythmic',
         colors: parseColors(parts[0]),
         pattern: bitsToPattern(parts[1]),
-        text: parts[2] ?? '',
+        text: unescapeText(parts[2] ?? ''),
         textPos: (parts[3] as 't' | 'b' | 'c') ?? 'c',
       };
     case 'D':
@@ -36,7 +37,7 @@ function parsePanel(token: string): Panel {
         registryIndex: Number(parts[1]),
         // text/pos are optional for backward compatibility with older URLs
         // that used the shorter `D{colors}!{index}` form.
-        text: parts[2] ?? '',
+        text: unescapeText(parts[2] ?? ''),
         textPos: (parts[3] as 't' | 'b' | 'c') ?? 'c',
       };
     case 'B':
@@ -44,7 +45,7 @@ function parsePanel(token: string): Panel {
         type: 'button',
         opacity: parts[0] === 'o' ? 'opaque' : 'transparent',
         litColor: parts[1] === 'x' ? null : Number(parts[1]),
-        text: parts[2] ?? '',
+        text: unescapeText(parts[2] ?? ''),
         textPos: (parts[3] as 't' | 'b') ?? 'b',
         sharedTextKey: '',
       };

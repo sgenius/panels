@@ -107,9 +107,10 @@ Always keep the **round-trip test green**: encode → decode → encode must be 
 Decoding is backward-compatible with the older short `D{colors}!{index}` regular-LED
 form (text defaults to empty, position to center).
 
-Panel `text` must not contain the `!` or `-` delimiters or serialization breaks; the
-random generator never produces them, but user-entered text is not yet sanitized
-(applies to K/D/B tokens) — a known limitation to address if it bites.
+Panel `text` (K/D/B tokens) is escaped via `serialize/textCodec.ts` so it can't
+collide with the `!`/`-`/`;` delimiters or URL-special chars: `escapeText` =
+`encodeURIComponent` plus escaping `-` and `!` (which encodeURIComponent leaves
+alone); `unescapeText` reverses it and is tolerant of malformed input.
 
 ## Conventions
 

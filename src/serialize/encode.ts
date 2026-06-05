@@ -2,6 +2,7 @@
 // See docs/tech-spec.md §5.8.
 
 import type { FrameNode, Panel } from '../board/model';
+import { escapeText } from './textCodec';
 
 function patternToBits(pattern: boolean[]): string {
   return pattern.map((b) => (b ? '1' : '0')).join('');
@@ -13,13 +14,13 @@ function panelToken(panel: Panel): string {
       return 'X';
     case 'led':
       if (panel.mode === 'rhythmic') {
-        return `K${panel.colors.join('')}!${patternToBits(panel.pattern)}!${panel.text}!${panel.textPos}`;
+        return `K${panel.colors.join('')}!${patternToBits(panel.pattern)}!${escapeText(panel.text)}!${panel.textPos}`;
       }
-      return `D${panel.colors.join('')}!${panel.registryIndex}!${panel.text}!${panel.textPos}`;
+      return `D${panel.colors.join('')}!${panel.registryIndex}!${escapeText(panel.text)}!${panel.textPos}`;
     case 'button': {
       const op = panel.opacity === 'opaque' ? 'o' : 't';
       const lit = panel.litColor === null ? 'x' : String(panel.litColor);
-      return `B${op}!${lit}!${panel.text}!${panel.textPos}`;
+      return `B${op}!${lit}!${escapeText(panel.text)}!${panel.textPos}`;
     }
   }
 }
