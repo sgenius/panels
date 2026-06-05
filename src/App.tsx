@@ -14,8 +14,9 @@ import { ContextMenu, type MenuState } from './components/ContextMenu';
 
 function createBoard(): BoardConfig {
   const rng = makeRng(randomSeed());
+  const aspect = window.innerWidth / window.innerHeight;
   return {
-    root: generateBoard(rng, DEFAULT_GENERATION_PARAMS),
+    root: generateBoard(rng, DEFAULT_GENERATION_PARAMS, aspect),
     theme: 'metallic',
     colors: defaultColors('metallic'),
   };
