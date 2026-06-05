@@ -15,7 +15,7 @@ function panelToken(panel: Panel): string {
       if (panel.mode === 'rhythmic') {
         return `K${panel.colors.join('')}!${patternToBits(panel.pattern)}!${panel.text}!${panel.textPos}`;
       }
-      return `D${panel.colors.join('')}!${panel.registryIndex}`;
+      return `D${panel.colors.join('')}!${panel.registryIndex}!${panel.text}!${panel.textPos}`;
     case 'button': {
       const op = panel.opacity === 'opaque' ? 'o' : 't';
       const lit = panel.litColor === null ? 'x' : String(panel.litColor);

@@ -34,10 +34,10 @@ function parsePanel(token: string): Panel {
         mode: 'regular',
         colors: parseColors(parts[0]),
         registryIndex: Number(parts[1]),
-        // text/pos are not serialized for regular LEDs in the spec table;
-        // default to empty/center.
-        text: '',
-        textPos: 'c',
+        // text/pos are optional for backward compatibility with older URLs
+        // that used the shorter `D{colors}!{index}` form.
+        text: parts[2] ?? '',
+        textPos: (parts[3] as 't' | 'b' | 'c') ?? 'c',
       };
     case 'B':
       return {

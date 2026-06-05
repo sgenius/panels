@@ -7,7 +7,7 @@ import { DEFAULT_GENERATION_PARAMS } from '../board/model';
 
 describe('serialization round-trip (DFS, self-delimiting)', () => {
   it('matches the worked example from the tech spec', () => {
-    const s = 'F2!1-X-F1!2-K0345!01101001!Hi!t-D012!2-';
+    const s = 'F2!1-X-F1!2-K0345!01101001!Hi!t-D012!2!OK!b-';
     const tree = decodeBoard(s);
     expect(encodeBoard(tree)).toBe(s);
     expect(tree.kind).toBe('node');
@@ -15,6 +15,26 @@ describe('serialization round-trip (DFS, self-delimiting)', () => {
       expect(tree.cols).toBe(2);
       expect(tree.rows).toBe(1);
       expect(tree.children).toHaveLength(2);
+    }
+  });
+
+  it('decodes a regular LED with text and position, and stays stable', () => {
+    const tree = decodeBoard('D35!4!GO!t-');
+    expect(tree.kind).toBe('leaf');
+    if (tree.kind === 'leaf' && tree.panel.type === 'led' && tree.panel.mode === 'regular') {
+      expect(tree.panel.colors).toEqual([3, 5]);
+      expect(tree.panel.registryIndex).toBe(4);
+      expect(tree.panel.text).toBe('GO');
+      expect(tree.panel.textPos).toBe('t');
+    }
+  });
+
+  it('still decodes the older D{colors}!{index} form (backward compatible)', () => {
+    const tree = decodeBoard('D012!2-');
+    expect(tree.kind).toBe('leaf');
+    if (tree.kind === 'leaf' && tree.panel.type === 'led' && tree.panel.mode === 'regular') {
+      expect(tree.panel.text).toBe('');
+      expect(tree.panel.textPos).toBe('c');
     }
   });
 

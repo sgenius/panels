@@ -289,8 +289,12 @@ with `!` between config values, and `-` between node strings:
 | Node frame  | F  | `{cols}!{rows}`                           | `F2!5`           |
 | Blank       | X  | —                                        | `X`              |
 | Blinking LED| K  | `{colors}!{pattern}!{text}!{pos t/b/c}`  | `K0345!01101001!Hi!t` |
-| Regular LED | D  | `{colors}!{registry index}`              | `D012!2`         |
+| Regular LED | D  | `{colors}!{registry index}!{text}!{pos t/b/c}` | `D012!2!OK!b` |
 | Button      | B  | `{o/t}!{lit color or x}!{text}!{pos t/b}`| `Bt!2!hi!b`      |
+
+> Regular LED `text`/`pos` were added after v0 so user-configured labels persist.
+> Decoding is backward-compatible: the older `D{colors}!{index}` form still parses
+> (text defaults to empty, position to center).
 
 **Encode (pre-order):**
 ```
@@ -316,7 +320,7 @@ root = read()   // consumes exactly one full tree
 (2 cells) → Blinking LED, Regular LED:
 
 ```
-F2!1-X-F1!2-K0345!01101001!Hi!t-D012!2-
+F2!1-X-F1!2-K0345!01101001!Hi!t-D012!2!OK!b-
 ```
 
 Decode: `F2!1` wants 2 children → `X` (leaf), then `F1!2` wants 2 children →

@@ -104,9 +104,12 @@ Node IDs: `F` frame, `X` blank, `K` rhythmic LED, `D` regular LED, `B` button; `
 separates config values, `-` separates tokens.
 
 Always keep the **round-trip test green**: encode → decode → encode must be stable.
-Note regular-LED text/position are intentionally not serialized (per spec), so they
-don't survive a round-trip — that's expected; round-trip is asserted on the encoded
-string, not on text fields.
+Decoding is backward-compatible with the older short `D{colors}!{index}` regular-LED
+form (text defaults to empty, position to center).
+
+Panel `text` must not contain the `!` or `-` delimiters or serialization breaks; the
+random generator never produces them, but user-entered text is not yet sanitized
+(applies to K/D/B tokens) — a known limitation to address if it bites.
 
 ## Conventions
 

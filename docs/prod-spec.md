@@ -159,7 +159,7 @@ Node type       | Serialization ID  | Config settings                       | Ex
 Node frame      | F                 | {number of columns}!{number of rows}  | F2!5                      |
 Blank           | X                 |                                       | X                         |
 Blinking LED    | K                 | {colors}!{blink pattern}!{text}!{text position (t for top, b for bottom, or c for center)} | K0345!01101001!Hi!t |
-Regular LED     | D                 | {colors}!{registry index it listens to}   | D012!2                |
+Regular LED     | D                 | {colors}!{registry index it listens to}!{text}!{text position (t for top, b for bottom, or c for center)} | D012!2!OK!b |
 Button          | B                 | {o for opaque, or t for semi-transparent}!{color it lights up in, or x if none}!{text}!{text position (t for top or b for bottom)}   | Bt!2!hi!b  |
 ---------------------------------------------------------------------------------------------------------
 
