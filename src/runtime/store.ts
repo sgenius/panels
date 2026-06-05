@@ -35,12 +35,17 @@ export const useRuntime = create<RuntimeState>((set) => ({
       // Last value: a counter, +1 each tick, wrapping at REGISTRY_MAX.
       reg[counterIdx] = reg[counterIdx] >= REGISTRY_MAX ? 0 : reg[counterIdx] + 1;
 
-      // Change 1, 2, or 3 of the pool values this tick; index 0 always changes.
-      const changeCount = 1 + Math.floor(rng() * 3); // 1..3
-      const chosen = new Set<number>([0]);
-      while (chosen.size < changeCount && chosen.size < poolSize) {
-        chosen.add(Math.floor(rng() * poolSize)); // 0..poolSize-1
+      // Change 2, 3, or 4 of the pool values this tick; index 0 always changes.
+      // Pick distinct indices by shuffling the other pool indices (no rejection
+      // sampling, so a degenerate RNG can't spin forever).
+      const changeCount = Math.min(2 + Math.floor(rng() * 3), poolSize); // 2..4
+      const others: number[] = [];
+      for (let i = 1; i < poolSize; i++) others.push(i);
+      for (let i = others.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [others[i], others[j]] = [others[j], others[i]];
       }
+      const chosen = [0, ...others.slice(0, changeCount - 1)];
       for (const i of chosen) reg[i] = Math.floor(rng() * (REGISTRY_MAX + 1));
 
       return { tick, registry: reg };
