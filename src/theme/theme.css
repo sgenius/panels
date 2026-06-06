@@ -242,6 +242,10 @@ body,
   padding: 0;
   cursor: pointer;
   z-index: 1;
+  /* 3D so the lever end can swing toward the viewer (a real flick switch) rather
+     than rotating flat like a knob. */
+  perspective: 42cqmin;
+  perspective-origin: 50% 50%;
 }
 
 /* chrome circle the lever protrudes from */
@@ -249,45 +253,78 @@ body,
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 30cqmin;
-  height: 30cqmin;
+  width: 28cqmin;
+  height: 28cqmin;
   transform: translate(-50%, -50%);
   border-radius: 50%;
   background: radial-gradient(circle at 50% 35%, #fbfdff 0%, #c6ccd3 45%, #6f767e 100%);
   box-shadow:
     inset 0 2px 3px rgba(255, 255, 255, 0.8),
     inset 0 -3px 5px rgba(0, 0, 0, 0.55),
-    0 1px 2px rgba(0, 0, 0, 0.5);
+    0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
-/* the chrome stick; pivots at the circle centre */
+/* the chrome stick; pivots at the circle centre and swings through the viewer */
 .switch-stick {
   position: absolute;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #70767e 0%, #fdfefe 42%, #c2c8cf 60%, #6b7178 100%);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.55),
+    inset 0 0 2px rgba(255, 255, 255, 0.6);
+  transition: transform 220ms cubic-bezier(0.45, 0.05, 0.4, 1);
+  will-change: transform;
+}
+
+/* rounded knob at the lever tip (what you see when it points at you mid-flick) */
+.switch-stick::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #ffffff 0%, #cdd2d8 55%, #80868d 100%);
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Vertical: stick points up, pivots about the horizontal axis (rotateX). */
+.switch.vertical .switch-stick {
   left: 50%;
   bottom: 50%;
   width: 11cqmin;
-  height: 30cqmin;
-  border-radius: 999px;
+  height: 27cqmin;
   transform-origin: 50% 100%;
-  background: linear-gradient(90deg, #8b9097 0%, #fdfefe 45%, #aeb4bb 60%, #70767e 100%);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    inset 0 0 2px rgba(255, 255, 255, 0.6);
-  transition: transform 140ms ease;
 }
-
-/* on/off positions; the stick leans toward the "on" side */
+.switch.vertical .switch-stick::after {
+  width: 100%;
+  aspect-ratio: 1;
+  left: 0;
+  top: -5cqmin;
+}
 .switch.vertical.on .switch-stick {
-  transform: translateX(-50%) rotate(0deg);
+  transform: translateX(-50%) rotateX(-26deg);
 }
 .switch.vertical.off .switch-stick {
-  transform: translateX(-50%) rotate(180deg);
+  transform: translateX(-50%) rotateX(-154deg);
+}
+
+/* Horizontal: stick points right, pivots about the vertical axis (rotateY). */
+.switch.horizontal .switch-stick {
+  left: 50%;
+  top: 50%;
+  width: 27cqmin;
+  height: 11cqmin;
+  transform-origin: 0% 50%;
+}
+.switch.horizontal .switch-stick::after {
+  height: 100%;
+  aspect-ratio: 1;
+  top: 0;
+  right: -5cqmin;
 }
 .switch.horizontal.on .switch-stick {
-  transform: translateX(-50%) rotate(90deg);
+  transform: translateY(-50%) rotateY(-26deg);
 }
 .switch.horizontal.off .switch-stick {
-  transform: translateX(-50%) rotate(-90deg);
+  transform: translateY(-50%) rotateY(-154deg);
 }
 
 /* ---- Bar meter ---- */

@@ -1,6 +1,6 @@
 // App root: loads/creates the board, applies theme, runs the tick, wires menu + dialogs.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { BoardConfig, GenerationParams, Panel, ThemeId } from './board/model';
 import { DEFAULT_GENERATION_PARAMS } from './board/model';
 import { generateBoard } from './board/generate';
@@ -45,12 +45,19 @@ function loadOrCreate(params: GenerationParams): BoardConfig {
 
 export default function App() {
   const [params, setParams] = useState<GenerationParams>(DEFAULT_GENERATION_PARAMS);
-  const [config, setConfig] = useState<BoardConfig>(() => {
+  // One-time board init via a ref guard. This MUST run exactly once: it has side
+  // effects (random board creation, writeHash, priming Power panels on). React
+  // StrictMode double-invokes useState initializers, which would otherwise build a
+  // second random board and prime the discarded board's keys — leaking "on" state
+  // onto unrelated panels.
+  const initRef = useRef<BoardConfig | null>(null);
+  if (initRef.current === null) {
     const c = loadOrCreate(DEFAULT_GENERATION_PARAMS);
     const { buttons, switches } = collectPowerKeys(c.root);
     useRuntime.getState().primePower(buttons, switches); // Power panels start on
-    return c;
-  });
+    initRef.current = c;
+  }
+  const [config, setConfig] = useState<BoardConfig>(initRef.current);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [dialog, setDialog] = useState<DialogState>(null);
   const resetRuntime = useRuntime((s) => s.reset);
