@@ -290,7 +290,13 @@ with `!` between config values, and `-` between node strings:
 | Blank       | X  | —                                        | `X`              |
 | Blinking LED| K  | `{colors}!{pattern}!{text}!{pos t/b/c}`  | `K0345!01101001!Hi!t` |
 | Regular LED | D  | `{colors}!{registry index}!{text}!{pos t/b/c}` | `D012!2!OK!b` |
-| Button      | B  | `{o/t}!{lit color or x}!{text}!{pos t/b}`| `Bt!2!hi!b`      |
+| Button      | B  | `{o/t}!{lit color or x}!{text}!{pos t/b/c}`| `Bt!2!hi!b`    |
+| Flick switch| S  | `{orientation h/v}!{text}!{pos t/b}`     | `Sv!PWR!b`       |
+| Bar meter   | M  | `{subtype}!{valueExpr}!{min}!{max}!{step}!{text}!{pos t/b}` | `M0!2s4!0!60000!5000!TMP!b` |
+
+The new panel tokens (`S`, `M`) are specified in detail in **§9 (planned additions)**.
+There are **no dedicated Power tokens**: "Power" panels serialize as ordinary `B`/`S`
+and their specialness is derived purely from text on decode (§9.4).
 
 > Regular LED `text`/`pos` were added after v0 so user-configured labels persist.
 > Decoding is backward-compatible: the older `D{colors}!{index}` form still parses
@@ -389,3 +395,190 @@ src/
   App.tsx, main.tsx
 docs/           prod-spec.md, tech-spec.md
 ```
+
+---
+
+## 9. Planned additions (v0.2): subtypes, new panels, special panels
+
+`prod-spec.md` adds three things: a general **panel-subtype** mechanism, two new panel
+types (**flick switch**, **bar meter**), and **special panel instances** (the **Power**
+button/switch). This section is the implementation plan. Where the spec's serialization
+table is incomplete or inconsistent, the plan calls it out and recommends a resolution
+(consistent with how we already extended the `D` token).
+
+### 9.1 Panel subtypes (general mechanism)
+
+A subtype is a number **0–255** attached to a panel type that has visual variants with
+identical behaviour/state. The active theme declares which subtypes it actually renders;
+a requested subtype the theme doesn't support is mapped by **round-robin over the
+supported list**: `rendered = supported[requested % supported.length]`.
+
+- **Theme model:** extend the theme object with
+  `subtypes: Partial<Record<PanelType, number[]>>` listing supported subtypes per type.
+  Metallic: `{ barmeter: [0, 1] }` (no other type uses subtypes yet).
+- **Helper:** `resolveSubtype(theme, type, requested): number`.
+- **Storage:** the *requested* subtype (0–255) is what we store/serialize, so a board
+  keeps its identity even on a theme that later supports more subtypes. Rendering
+  resolves to the supported one at paint time.
+- Only **bar meter** uses subtypes in v0.2; the mechanism is built generically so other
+  types can opt in later.
+
+### 9.2 Flick switch (`S`)
+
+A user-operated two-position switch. **Orientation** vertical (up=on/down=off) or
+horizontal (right=on/left=off). Metallic: a rounded chrome stick protruding from a
+chrome circle. Text top/bottom. **State is user-only** (no registry drive).
+
+- **Model:** `{ type: 'switch'; orientation: 'h' | 'v'; text; textPos: 't' | 'b' }`.
+- **Runtime state:** on/off lives in the store exactly like buttons (a keyed
+  `switchOn[key]`), toggled on click; never serialized. Default off (unless it's a
+  Power switch — see §9.4 — which starts on).
+- **Rendering:** the stick is a CSS element translated to the on/off end with a short
+  transition; click toggles. Orientation chooses the translate axis.
+- **Serialization (decided):** `S{orientation}!{text}!{pos}` (e.g. `Sv!PWR!b`), mirroring
+  how we fixed `D` — the spec's empty `S` would lose orientation and text across reloads.
+  Decode stays backward-compatible with a bare `S` (defaults: orientation from cell
+  aspect, empty text).
+
+### 9.3 Bar meter (`M`)
+
+A long measure box with value bars and an indicator, showing a value derived from the
+registry. Two metallic subtypes: **0 = thermometer** (cylindrical tube, fill indicator,
+long delay), **1 = radio** (square-ish tube, thin red stick indicator, short delay).
+
+- **Model:**
+  ```ts
+  type ValueExpr =
+    | { kind: 'reg'; a: number }                                   // registry[a]
+    | { kind: 'op'; a: number; op: '+' | '-' | '*' | '/' | '%'; b: number };
+  interface BarMeter {
+    type: 'barmeter';
+    subtype: number;          // 0..255 (requested; resolved per theme)
+    value: ValueExpr;
+    min: number; max: number; // defaults 0 / 65000, integer, within Number range
+    step: number;             // default 5000
+    text: string; textPos: 't' | 'b';   // center not allowed
+  }
+  ```
+- **Value computation** (runtime): evaluate `ValueExpr` against the registry, **round to
+  integer**, then **clamp to `[min, max]`**. Guard divide/modulo by zero (→ treat as 0).
+  The panel subscribes only to the 1–2 registry slices it reads (preserves selective
+  re-render).
+- **Out-of-range never hides the indicator:** a value below `min` pins the indicator at
+  the `min` position; above `max` pins it at `max`. (E.g. value 70000 on a meter with
+  `max` 60000 shows the indicator stuck at the 60000 mark, not gone.) This is exactly the
+  clamp above applied to the indicator's rendered position/length.
+- **Indicator style & delay** come from the subtype (fill+long for 0, stick+short for
+  1), so they are not stored separately. The animation is a CSS transition, **safe here**
+  (a single property — unlike the LED glow gradient/shadow pairing), but the animated
+  property differs by subtype:
+  - **Subtype 0 / fill (thermometer):** transition the indicator's **length** (the fill
+    grows/shrinks from the 0 end).
+  - **Subtype 1 / stick (radio):** transition the indicator's **position** (the thin
+    stick slides along the box).
+- **Orientation** is derived from the cell's shape at render via a **container query**
+  (`@container (aspect-ratio > 1)` → horizontal, else vertical). This makes orientation
+  responsive to resize and needs no serialization. (Spec: "much longer in one
+  dimension"; deriving from aspect matches that and our aspect-aware layout.)
+- **Generation influence:** a bar meter **raises P(barmeter) for its grid siblings**,
+  and the boost **grows with frame level** — same sibling-influence machinery as LEDs,
+  with a level-scaled weight.
+- **Serialization (decided):** `M{subtype}!{valueExpr}!{min}!{max}!{step}!{text}!{pos}`
+  — subtype, value expression, the three range fields, then label + position. Example
+  `M0!2s4!0!60000!5000!TMP!b`. `valueExpr` is `{regA}` or `{regA}{op}{regB}`; operators
+  are `+ s * / %` where **`s` = subtract** (a raw `-` is avoided because it is the token
+  delimiter). The other operators don't collide with our `! - ;` delimiters.
+
+### 9.4 Special panels & the Power panel (no dedicated token)
+
+**Specialness is derived from a panel's current text.** A panel that takes user input
+and has two states (button or switch) becomes a **Power** panel when its
+case-insensitive text is one of: `On`, `Off`, `On/Off`, `Power`. Changing the text away
+removes specialness. So "is this a power panel?" is a pure function of text — a single
+source of truth, recomputed on decode and on every text edit.
+
+- **Detection:** `isPowerText(text): boolean` against the trigger set (case-insensitive,
+  trimmed). Applied to buttons and switches.
+- **Generation:** each newly created button/switch has a configurable **10% chance** to
+  be made special; when chosen, the generator sets its text to a trigger word (e.g.
+  `POWER`). System-created Power panels start **on**.
+- **Effect — "powered off" propagation:** within a node frame, if **any** Power child is
+  **off**, then every **other** child *and its entire subtree* renders in the forced
+  **off / powered-off** state (LEDs dark, buttons up, switches off, meters at min),
+  regardless of their own state. Multiple Power siblings combine with **OR** (powered
+  off if any is off). Implemented by threading a `poweredOff: boolean` down `Frame`:
+  at each node, `childPoweredOff = poweredOff || someActivePowerSiblingIsOff`, passed to
+  the non-power children.
+- **Power panels are never themselves powered off (decided).** A Power panel only changes
+  by user intervention — like a physical master switch — so it is exempt from the
+  powered-off state even when a sibling (or an ancestor-level) Power panel is off. In the
+  `Frame` threading, the `poweredOff` flag is **not** applied to children that are Power
+  panels; they always render and remain toggleable. This also prevents two master
+  switches from deadlocking each other.
+- **Serialization (decided):** **no dedicated Power tokens.** A Power button serializes
+  as a normal `B`, a Power switch as a normal `S`; its text already encodes the trigger
+  word, and specialness is recomputed from that text on decode. Single source of truth,
+  stable round-trip, smaller table.
+
+### 9.5 Serialization — updated token set
+
+```
+F  {cols}!{rows}
+X
+K  {colors}!{pattern}!{text}!{pos}
+D  {colors}!{regIndex}!{text}!{pos}
+B  {o/t}!{litColorOrX}!{text}!{pos}                 pos now t/b/c (on-face)
+S  {h/v}!{text}!{pos}                                bare `S` still decodes (defaults)
+M  {subtype}!{valueExpr}!{min}!{max}!{step}!{text}!{pos}
+                                                     valueExpr = reg | reg{op}reg, op∈ + s * / %
+(no Power token — Power panels are B/S with trigger text; specialness derived from text)
+```
+Round-trip tests extend to cover switches, bar meters (both subtypes, all operators,
+clamp/rounding at the range extremes), and power-text detection.
+
+### 9.6 Config dialog additions
+
+- **Switch:** orientation (h/v), text, text position (t/b).
+- **Bar meter:** subtype, value source (registry index, or two indices + operator),
+  min / max / step, text + position (t/b only). Validate `min < max`, integer fields.
+- **Power:** no separate dialog — naturally entered by typing a trigger word into any
+  button/switch text field; the UI can show a small "⚡ Power" hint when the text
+  matches.
+
+### 9.7 Generation additions
+
+- Add `switch` and `barmeter` to the leaf panel-type weights.
+- Bar-meter **sibling influence** scaled by level (§9.3); keep LED influence.
+- Power **10% special chance** per button/switch (configurable as a generation param).
+- Thread the existing **aspect** value into bar-meter creation if we ever want to bias
+  subtype/orientation at gen time (currently orientation is render-derived).
+
+### 9.8 Decisions (resolved) & remaining detail
+
+**Resolved:**
+1. **Switch / meter serialization.** Extend `S` to `S{h/v}!{text}!{pos}` (bare `S` still
+   decodes with defaults). Bar meter is
+   `M{subtype}!{valueExpr}!{min}!{max}!{step}!{text}!{pos}` — `min`/`max`/`step` **are**
+   serialized.
+2. **No Power token.** Power panels serialize as `B`/`S`; specialness is derived from
+   text only.
+3. **Subtract operator** is encoded as **`s`** (raw `-` is the token delimiter).
+4. **Power panels are exempt** from being powered off (they change only by user action),
+   so master switches always operate and can't deadlock each other.
+
+**Remaining detail to settle during build:**
+- **"Powered off" visual.** Define one shared "dead" look per panel (LED black, button
+  up, switch off, meter pinned at `min`) plus a subtle desaturation/dim across the
+  powered-off subtree so the power relationship reads clearly.
+- **Trigger matching.** Compare case-insensitively on the trimmed text; `On/Off` matches
+  literally (the `/` is fine in stored text — it's percent-escaped by the text codec).
+
+### 9.9 Suggested build order
+
+1. Subtype mechanism + theme `subtypes` map + `resolveSubtype` (small, unblocks meters).
+2. Flick switch (model, runtime toggle, metallic render, `S` serialize, config, tests).
+3. Bar meter (model, value eval, two subtypes, container-query orientation, animation,
+   `M` serialize, generation influence, config, tests).
+4. Power panels (text detection from `B`/`S` text, generation 10%, power-off propagation
+   through `Frame` with Power panels exempt, tests for OR semantics).
+5. Polish + verify resize/round-trip across all new types.
