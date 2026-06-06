@@ -54,6 +54,26 @@ Some panels may choose to have their own state.
 
 All panels should have one or more output states, meant to represent the values in the global registry.
 
+#### Panel subtypes
+Some panel have subtypes: they look slightly different but have the same functionality and state. 
+For any panel type with subtypes, the subtype will be a value from 0 to 255.
+
+Not all themes support all subtypes. When a theme does not support a subtype, the actual rendered subtype is determined by round-robin between the available digits. Example for a theme that only supports subtypes 0, 1, and 2:
+
+Requested type | Rendered type
+------------------------------
+0   | 0
+1   | 1
+2   | 2
+3   | 0
+4   | 1
+5   | 2
+6   | 0
+7   | 1
+8   | 2
+...
+and so on.
+
 #### Initial panel types
 ##### Blank
 It represents an empty panel. It has no interactivity or controls.
@@ -80,6 +100,61 @@ It represents a button that can be physically depressed to represent an "on" sta
 Buttons can be opaque or semi-transparent.
 **State**: The text on the button is globally stored.
 The button can be off (not depressed) or on (depressed). Semi-transparent buttons can light up when on. Light color is always the same, taken from the theme colors.
+
+##### Flick switch
+It represents a kind of user-operated switch, with two opposing positions.
+**UI**: The switch can be vertical or horizontal. When vertical, the "up" position means "on" and the "down" position means "off".
+When horizontal, the "right" position means "on" and the "left" position means "off".
+In the default "metallic" theme, it should look like a small, rounded chrome stick that is coming out of a chrome circle.
+It can have text on top or bottom.
+**State**: On/off. State is only changed by user intervention.
+
+##### Bar Meter
+It represents a digital or analogue bar or box, much longer in a dimension than the other, to display values within a range, plus an internal indicator of the current value. Physical examples are: a thermometer, an old-timey radio tuning indicator, or the "channel volume" display in a sound mixer.
+A bar meter slightly increases the chance for its siblings to also be bar meters. This influence increases when the frame level is higher. 
+**UI**: The "measure box" can be horizontal or vertical. It should be crossed by small "value bars" to represent possible values. Bars can be inside or outside the measure box. When vertical, 0 is at the bottom end; when horizontal, 0 is at the left end. Minimum and maximum values represented are configurable; by default they are 0 and 65000 respectively. They must be integer values within the valid value range of a Javascript Number type.
+Also configurable is the step between bars. By default the step is 5000. What this means is: the first small bar after 0 represents a value of 5000, the next one represents 10000, and so on.  
+The indicator should appear to be inside the measure box, and can have one of two styles: "fill" (the bar fills the space from the 0 value to the current value) or "stick" (there is a single bar sitting at the space representing the current value).
+When there is a change in value, there could be an animated delay - for example, to represent a physical liquid going up or down due to pressure changes. The delay can be 0 when we represent digital displays. The animation delay is configurable.
+
+Bar meters have two subtypes.
+
+In the default "metallic" theme, the subtypes are represented as follows:
+
+- Subtype 0: Thermometer. The "measure box" appears to be hollow, tubular, cylindrical, and encrusted within the panel. It appears to be covered by a clear pane. Value bars appear to be painted on the tube and are very dark in colour, but thin. The indicator is solid in color, fill style, and there is some spacing between the sides of the measure box and the sides of the indicator. Delay is long.
+- Subtype 1: Radio. The "measure box" is also hollow, tubular, but square-ish.  Value bars appear to be painted on the tube and are very dark in colour, but thin. The indicator is stick-type: a thin red bar coming up from one of the sides of the measure box, but not completely stretching to the other side. Delay is short.
+All bar meters can have also some text attached; text can be on top or on bottom, but not at the center.
+
+**State**: Bar meters represent values coming from global registry. How it is calculated is determined at initialization time and is configurable. The calculation can be:
+- The direct value of any of the registry variables, or
+- An addition, subtraction, multiplication, division, or modulo operation between the values of two registry variables.
+Results are always integer. If a result is not integer, it will be rounded.
+
+##### Special panel instances
+Some panels will have special behaviors depending on their text. The system nust keep track of these rules and apply them to any panel that becomes a special panel.
+
+This can happen in one of two ways:
+- The system determines it at initialization. Whenever a panel is created, it has a configurable 10% chance to become a special panel.
+- The user changes the text of the panel to match one of the triggering texts.
+
+A special panel can also be stripped of its "specialness" by changing its text to a non-trigger text.
+
+###### "Power" buttons and switches
+This applies to any panel with user inputs and two states (such as buttons and switches).
+If the panel has any of the following case-insensitive names:
+- On
+- Off
+- On/Off
+- Power
+then it's a "power" panel.
+
+Power panels have an effect on their siblings and all of their siblings' children: 
+- If they are off, the siblings are forced to be "powered off", meaning they will be shown in the off position regardless of their internal state. 
+- If they are on, the siblings are allowed to function normally.
+
+Power panels, when created by the system, are always instantiated in the "on" position.
+
+Two or more power panels that influence a third panel's state will apply on an "or" condition for the power panel values. That is: if power panel A and power panel B affect panel C, panel C will be "powered off" if ether A or B are off, or if both are off. 
 
 ### Theme
 The theme will determine the appearance of all UI.
@@ -161,6 +236,11 @@ Blank           | X                 |                                       | X 
 Blinking LED    | K                 | {colors}!{blink pattern}!{text}!{text position (t for top, b for bottom, or c for center)} | K0345!01101001!Hi!t |
 Regular LED     | D                 | {colors}!{registry index it listens to}!{text}!{text position (t for top, b for bottom, or c for center)} | D012!2!OK!b |
 Button          | B                 | {o for opaque, or t for semi-transparent}!{color it lights up in, or x if none}!{text}!{text position (t for top or b for bottom)}   | Bt!2!hi!b  |
+Power Button    | BP                 | {o for opaque, or t for semi-transparent}!{color it lights up in, or x if none}!{text}!{text position (t for top or b for bottom)}   | BPt!2!hi!b  |
+
+Flick switch    | S                 |                                       | S                         |
+Power flick switch    | SP          |                                       | SP                        |
+Bar Meter       | M                 | {subtype}!{first state registry number}{operator, if any}{second state registry number, if any}
 ---------------------------------------------------------------------------------------------------------
 
 Note that leaf frames are not represented by themselves; only the panel they contain is represented.
