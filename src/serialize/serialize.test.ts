@@ -51,6 +51,49 @@ describe('serialization round-trip (DFS, self-delimiting)', () => {
     expect(() => decodeBoard('X-X-')).toThrow();
   });
 
+  it('round-trips a flick switch', () => {
+    const s = 'Sh!PWR!t-';
+    const tree = decodeBoard(s);
+    expect(encodeBoard(tree)).toBe(s);
+    if (tree.kind === 'leaf' && tree.panel.type === 'switch') {
+      expect(tree.panel.orientation).toBe('h');
+      expect(tree.panel.text).toBe('PWR');
+      expect(tree.panel.textPos).toBe('t');
+    }
+  });
+
+  it('round-trips a bar meter, encoding subtract as "s"', () => {
+    const s = 'M1!2s4!0!255!25!TMP!b-';
+    const tree = decodeBoard(s);
+    expect(encodeBoard(tree)).toBe(s);
+    if (tree.kind === 'leaf' && tree.panel.type === 'barmeter') {
+      expect(tree.panel.subtype).toBe(1);
+      expect(tree.panel.value).toEqual({ kind: 'op', a: 2, op: '-', b: 4 });
+      expect(tree.panel.min).toBe(0);
+      expect(tree.panel.max).toBe(255);
+      expect(tree.panel.step).toBe(25);
+    }
+  });
+
+  it('round-trips a bar meter with a negative min (n-prefixed)', () => {
+    const s = 'M0!2s4!n255!255!50!D!t-';
+    const tree = decodeBoard(s);
+    expect(encodeBoard(tree)).toBe(s);
+    if (tree.kind === 'leaf' && tree.panel.type === 'barmeter') {
+      expect(tree.panel.min).toBe(-255);
+      expect(tree.panel.max).toBe(255);
+    }
+  });
+
+  it('round-trips a single-registry bar meter', () => {
+    const s = 'M0!3!0!255!25!T!b-';
+    const tree = decodeBoard(s);
+    expect(encodeBoard(tree)).toBe(s);
+    if (tree.kind === 'leaf' && tree.panel.type === 'barmeter') {
+      expect(tree.panel.value).toEqual({ kind: 'reg', a: 3 });
+    }
+  });
+
   it('escapes delimiters and URL-special chars in panel text', () => {
     const nasty = "A-B!C;D&E=F/G:H I#J%K'L(M)~N";
     const root: FrameNode = {

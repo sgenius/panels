@@ -9,9 +9,12 @@ interface RuntimeState {
   tick: number;
   registry: number[]; // length REGISTRY_SIZE, each 0..255
   buttonOn: Record<string, boolean>;
+  switchOn: Record<string, boolean>;
   sharedText: Record<string, string>;
   advance: (rng: () => number) => void;
   toggleButton: (key: string) => void;
+  toggleSwitch: (key: string) => void;
+  setOn: (kind: 'button' | 'switch', key: string, on: boolean) => void;
   setSharedText: (key: string, text: string) => void;
   reset: () => void;
 }
@@ -24,6 +27,7 @@ export const useRuntime = create<RuntimeState>((set) => ({
   tick: 0,
   registry: freshRegistry(),
   buttonOn: {},
+  switchOn: {},
   sharedText: {},
   advance: (rng) =>
     set((s) => {
@@ -51,6 +55,13 @@ export const useRuntime = create<RuntimeState>((set) => ({
       return { tick, registry: reg };
     }),
   toggleButton: (key) => set((s) => ({ buttonOn: { ...s.buttonOn, [key]: !s.buttonOn[key] } })),
+  toggleSwitch: (key) => set((s) => ({ switchOn: { ...s.switchOn, [key]: !s.switchOn[key] } })),
+  setOn: (kind, key, on) =>
+    set((s) =>
+      kind === 'button'
+        ? { buttonOn: { ...s.buttonOn, [key]: on } }
+        : { switchOn: { ...s.switchOn, [key]: on } },
+    ),
   setSharedText: (key, text) => set((s) => ({ sharedText: { ...s.sharedText, [key]: text } })),
-  reset: () => set({ tick: 0, registry: freshRegistry(), buttonOn: {}, sharedText: {} }),
+  reset: () => set({ tick: 0, registry: freshRegistry(), buttonOn: {}, switchOn: {}, sharedText: {} }),
 }));

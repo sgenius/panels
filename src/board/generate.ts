@@ -1,16 +1,25 @@
 // Recursive board generation. See docs/tech-spec.md §5.2.
 
-import type { FrameNode, GenerationParams, Panel } from './model';
+import type { FrameNode, GenerationParams, Panel, PanelType, ValueExpr, ValueOp } from './model';
 import { REGISTRY_SIZE } from './model';
 import type { Rng } from './prng';
 import { randomText } from './text';
-
-type PanelType = 'blank' | 'led' | 'button';
 
 interface GenContext {
   rng: Rng;
   params: GenerationParams;
   count: number; // running node count for the soft cap
+}
+
+// Per-board key counters for runtime state (buttons, switches).
+interface Keys {
+  btn: number;
+  sw: number;
+}
+
+interface SiblingBoost {
+  led: number;
+  meter: number;
 }
 
 function clamp01(x: number): number {
@@ -116,7 +125,7 @@ function makeLed(ctx: GenContext): Panel {
   };
 }
 
-function makeButton(ctx: GenContext, idCounter: { n: number }): Panel {
+function makeButton(ctx: GenContext, keys: Keys): Panel {
   const { rng } = ctx;
   const opacity = rng.pick(['opaque', 'transparent'] as const);
   const litColor = opacity === 'transparent' ? rng.int(COLOR_COUNT) : rng.chance(0.5) ? rng.int(COLOR_COUNT) : null;
@@ -126,40 +135,117 @@ function makeButton(ctx: GenContext, idCounter: { n: number }): Panel {
     litColor,
     text: randomText(rng),
     textPos: rng.pick(['t', 'b', 'c'] as const),
-    sharedTextKey: `btn-${idCounter.n++}`,
+    sharedTextKey: `btn-${keys.btn++}`,
   };
 }
 
-// Sibling influence: LEDs make sibling LEDs slightly more likely.
-function pickPanelType(rng: Rng, ledBoost: number): PanelType {
+function makeSwitch(ctx: GenContext, keys: Keys): Panel {
+  const { rng } = ctx;
+  return {
+    type: 'switch',
+    orientation: rng.pick(['h', 'v'] as const),
+    text: randomText(rng),
+    textPos: rng.pick(['t', 'b'] as const),
+    stateKey: `sw-${keys.sw++}`,
+  };
+}
+
+// A "nice" round step that yields ~11 value bars across the span.
+function niceStep(span: number): number {
+  const target = span / 11;
+  const candidates = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000];
+  return candidates.reduce((best, c) => (Math.abs(c - target) < Math.abs(best - target) ? c : best), candidates[0]);
+}
+
+// Choose min/max/step that fit the value expression's achievable range, so meters
+// actually move (registry values are 0..255). Multiply lands on the spec's 0/65000.
+function rangeFor(value: ValueExpr): { min: number; max: number; step: number } {
+  const R = 255;
+  let min = 0;
+  let max = R;
+  if (value.kind === 'op') {
+    switch (value.op) {
+      case '+':
+        max = 2 * R;
+        break;
+      case '-':
+        min = -R;
+        max = R;
+        break;
+      case '*':
+        max = 65000;
+        break;
+      case '/':
+      case '%':
+        max = R;
+        break;
+    }
+  }
+  return { min, max, step: niceStep(max - min) };
+}
+
+function makeBarMeter(ctx: GenContext): Panel {
+  const { rng } = ctx;
+  // Pick a value source: a single registry value, or an op between two.
+  let value: ValueExpr;
+  if (rng.chance(0.5)) {
+    value = { kind: 'reg', a: rng.int(REGISTRY_SIZE) };
+  } else {
+    const op = rng.pick(['+', '-', '*', '/', '%'] as const) as ValueOp;
+    value = { kind: 'op', a: rng.int(REGISTRY_SIZE), op, b: rng.int(REGISTRY_SIZE) };
+  }
+  const { min, max, step } = rangeFor(value);
+  return {
+    type: 'barmeter',
+    subtype: rng.int(2), // requested 0/1 (metallic supports both)
+    value,
+    min,
+    max,
+    step,
+    text: randomText(rng),
+    textPos: rng.pick(['t', 'b'] as const),
+  };
+}
+
+// Sibling influence: LEDs make sibling LEDs more likely; bar meters make sibling
+// bar meters more likely, and that influence grows with frame level.
+function pickPanelType(rng: Rng, boost: SiblingBoost): PanelType {
   const weights: Record<PanelType, number> = {
     blank: 1,
-    led: 2 + ledBoost,
-    button: 2,
+    led: 2 + boost.led,
+    button: 1.5,
+    switch: 1,
+    barmeter: 1 + boost.meter,
   };
-  const total = weights.blank + weights.led + weights.button;
+  const order: PanelType[] = ['blank', 'led', 'button', 'switch', 'barmeter'];
+  const total = order.reduce((s, t) => s + weights[t], 0);
   let r = rng.next() * total;
-  if ((r -= weights.blank) < 0) return 'blank';
-  if ((r -= weights.led) < 0) return 'led';
-  return 'button';
+  for (const t of order) {
+    if ((r -= weights[t]) < 0) return t;
+  }
+  return 'blank';
 }
 
-function makePanel(ctx: GenContext, type: PanelType, idCounter: { n: number }): Panel {
+function makePanel(ctx: GenContext, type: PanelType, keys: Keys): Panel {
   switch (type) {
     case 'blank':
       return { type: 'blank' };
     case 'led':
       return makeLed(ctx);
     case 'button':
-      return makeButton(ctx, idCounter);
+      return makeButton(ctx, keys);
+    case 'switch':
+      return makeSwitch(ctx, keys);
+    case 'barmeter':
+      return makeBarMeter(ctx);
   }
 }
 
 function genFrame(
   ctx: GenContext,
   level: number,
-  idCounter: { n: number },
-  ledBoost: number,
+  keys: Keys,
+  boost: SiblingBoost,
   aspect: number,
 ): FrameNode {
   ctx.count++;
@@ -167,18 +253,21 @@ function genFrame(
   const makeLeaf = !isRoot && ctx.rng.chance(leafProbability(ctx, level));
 
   if (makeLeaf || level >= ctx.params.maxDepth) {
-    const type = pickPanelType(ctx.rng, ledBoost);
-    return { kind: 'leaf', level, panel: makePanel(ctx, type, idCounter) };
+    const type = pickPanelType(ctx.rng, boost);
+    return { kind: 'leaf', level, panel: makePanel(ctx, type, keys) };
   }
 
   const { cols, rows } = pickGrid(ctx, level, aspect);
   // All cells in a grid share the same shape: childAspect = aspect * rows/cols.
   const childAspect = aspect * (rows / cols);
+  // Bar-meter sibling influence strengthens with depth.
+  const meterBoostStep = 1.2 * (1 + level * 0.6);
   const children: FrameNode[] = [];
-  let siblingLedBoost = 0;
+  const sib: SiblingBoost = { led: 0, meter: 0 };
   for (let i = 0; i < cols * rows; i++) {
-    const child = genFrame(ctx, level + 1, idCounter, siblingLedBoost, childAspect);
-    if (child.kind === 'leaf' && child.panel.type === 'led') siblingLedBoost += 1.5;
+    const child = genFrame(ctx, level + 1, keys, sib, childAspect);
+    if (child.kind === 'leaf' && child.panel.type === 'led') sib.led += 1.5;
+    if (child.kind === 'leaf' && child.panel.type === 'barmeter') sib.meter += meterBoostStep;
     children.push(child);
   }
   return { kind: 'node', level, cols, rows, children };
@@ -187,5 +276,5 @@ function genFrame(
 // `rootAspect` is the board's width/height; defaults to square if unknown.
 export function generateBoard(rng: Rng, params: GenerationParams, rootAspect = 1): FrameNode {
   const ctx: GenContext = { rng, params, count: 0 };
-  return genFrame(ctx, 0, { n: 0 }, 0, rootAspect);
+  return genFrame(ctx, 0, { btn: 0, sw: 0 }, { led: 0, meter: 0 }, rootAspect);
 }

@@ -1,11 +1,24 @@
 // Encode the board tree to a compact DFS (pre-order) string.
 // See docs/tech-spec.md §5.8.
 
-import type { FrameNode, Panel } from '../board/model';
+import type { FrameNode, Panel, ValueExpr, ValueOp } from '../board/model';
 import { escapeText } from './textCodec';
 
 function patternToBits(pattern: boolean[]): string {
   return pattern.map((b) => (b ? '1' : '0')).join('');
+}
+
+// Subtraction is encoded as 's' because a raw '-' is the token delimiter.
+const OP_TO_CHAR: Record<ValueOp, string> = { '+': '+', '-': 's', '*': '*', '/': '/', '%': '%' };
+
+function valueExprToStr(v: ValueExpr): string {
+  return v.kind === 'reg' ? `${v.a}` : `${v.a}${OP_TO_CHAR[v.op]}${v.b}`;
+}
+
+// Signed integer with an 'n' prefix for negatives, so the '-' delimiter is never
+// produced (min/max may be negative).
+function intToStr(n: number): string {
+  return n < 0 ? `n${-n}` : `${n}`;
 }
 
 function panelToken(panel: Panel): string {
@@ -22,6 +35,14 @@ function panelToken(panel: Panel): string {
       const lit = panel.litColor === null ? 'x' : String(panel.litColor);
       return `B${op}!${lit}!${escapeText(panel.text)}!${panel.textPos}`;
     }
+    case 'switch':
+      return `S${panel.orientation}!${escapeText(panel.text)}!${panel.textPos}`;
+    case 'barmeter':
+      return (
+        `M${panel.subtype}!${valueExprToStr(panel.value)}` +
+        `!${intToStr(panel.min)}!${intToStr(panel.max)}!${intToStr(panel.step)}` +
+        `!${escapeText(panel.text)}!${panel.textPos}`
+      );
   }
 }
 

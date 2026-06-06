@@ -1,6 +1,6 @@
 // Metallic theme definition. See docs/tech-spec.md §5.7.
 
-import type { ThemeId } from '../board/model';
+import type { PanelType, ThemeId } from '../board/model';
 
 export interface Theme {
   id: ThemeId;
@@ -9,6 +9,9 @@ export interface Theme {
   //   index 0 = positive, 1 = warning, 2 = danger, 3..7 = free.
   colors: string[];
   semantic: { positive: number; warning: number; danger: number };
+  // Subtypes this theme actually renders, per panel type. A requested subtype the
+  // theme doesn't support is mapped by round-robin (see resolveSubtype).
+  subtypes: Partial<Record<PanelType, number[]>>;
 }
 
 export const METALLIC: Theme = {
@@ -25,7 +28,15 @@ export const METALLIC: Theme = {
     '#ff8a3d', // 7 orange
   ],
   semantic: { positive: 0, warning: 1, danger: 2 },
+  subtypes: { barmeter: [0, 1] }, // 0 = thermometer, 1 = radio
 };
+
+// Resolve a requested subtype (0..255) to one the theme supports, round-robin.
+export function resolveSubtype(theme: ThemeId, type: PanelType, requested: number): number {
+  const supported = THEMES[theme].subtypes[type];
+  if (!supported || supported.length === 0) return 0;
+  return supported[requested % supported.length];
+}
 
 export const THEMES: Record<ThemeId, Theme> = {
   metallic: METALLIC,

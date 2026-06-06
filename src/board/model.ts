@@ -4,6 +4,16 @@
 export type TextPos = 't' | 'b' | 'c'; // top, bottom, center
 // Buttons can also place text on their face (center), above (top), or below (bottom).
 export type ButtonTextPos = TextPos;
+export type TopBottom = 't' | 'b'; // switches & bar meters: top/bottom only
+export type Orientation = 'h' | 'v';
+
+export type PanelType = 'blank' | 'led' | 'button' | 'switch' | 'barmeter';
+
+// Bar-meter value source: a single registry value, or an op between two of them.
+export type ValueOp = '+' | '-' | '*' | '/' | '%';
+export type ValueExpr =
+  | { kind: 'reg'; a: number }
+  | { kind: 'op'; a: number; op: ValueOp; b: number };
 
 export type Panel =
   | { type: 'blank' }
@@ -29,7 +39,24 @@ export type Panel =
       litColor: number | null; // theme color index, or null
       text: string;
       textPos: ButtonTextPos;
-      sharedTextKey: string; // key into global shared-text store
+      sharedTextKey: string; // key into global shared-text store (also its on/off key)
+    }
+  | {
+      type: 'switch';
+      orientation: Orientation;
+      text: string;
+      textPos: TopBottom;
+      stateKey: string; // key into the runtime on/off store
+    }
+  | {
+      type: 'barmeter';
+      subtype: number; // 0..255 (requested; resolved per theme)
+      value: ValueExpr;
+      min: number;
+      max: number;
+      step: number;
+      text: string;
+      textPos: TopBottom;
     };
 
 export type FrameNode =
@@ -78,3 +105,14 @@ export const DEFAULT_GENERATION_PARAMS: GenerationParams = {
 export const REGISTRY_SIZE = 6;
 export const REGISTRY_MAX = 255;
 export const TICK_MAX = 65535; // wraps after this
+
+// Bar-meter range defaults.
+export const BARMETER_DEFAULTS = { min: 0, max: 65000, step: 5000 };
+
+// Text triggers (case-insensitive) that make a user-input two-state panel a
+// "Power" panel. See docs/prod-spec.md and tech-spec §9.4.
+export const POWER_TRIGGERS = ['on', 'off', 'on/off', 'power'];
+
+export function isPowerText(text: string): boolean {
+  return POWER_TRIGGERS.includes(text.trim().toLowerCase());
+}
