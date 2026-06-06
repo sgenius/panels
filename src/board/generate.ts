@@ -125,6 +125,14 @@ function makeLed(ctx: GenContext): Panel {
   };
 }
 
+const POWER_LABELS = ['POWER', 'ON', 'OFF', 'ON/OFF'] as const;
+
+// With powerProbability, a user-input two-state panel becomes a Power panel by
+// taking a trigger label; otherwise it keeps the given random text.
+function maybePowerText(ctx: GenContext, fallback: string): string {
+  return ctx.rng.chance(ctx.params.powerProbability) ? ctx.rng.pick(POWER_LABELS) : fallback;
+}
+
 function makeButton(ctx: GenContext, keys: Keys): Panel {
   const { rng } = ctx;
   const opacity = rng.pick(['opaque', 'transparent'] as const);
@@ -133,7 +141,7 @@ function makeButton(ctx: GenContext, keys: Keys): Panel {
     type: 'button',
     opacity,
     litColor,
-    text: randomText(rng),
+    text: maybePowerText(ctx, randomText(rng)),
     textPos: rng.pick(['t', 'b', 'c'] as const),
     sharedTextKey: `btn-${keys.btn++}`,
   };
@@ -144,7 +152,7 @@ function makeSwitch(ctx: GenContext, keys: Keys): Panel {
   return {
     type: 'switch',
     orientation: rng.pick(['h', 'v'] as const),
-    text: randomText(rng),
+    text: maybePowerText(ctx, randomText(rng)),
     textPos: rng.pick(['t', 'b'] as const),
     stateKey: `sw-${keys.sw++}`,
   };

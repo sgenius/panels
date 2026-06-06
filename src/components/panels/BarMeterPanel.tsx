@@ -33,7 +33,14 @@ function evalExpr(v: ValueExpr, reg: number[]): number {
   return r;
 }
 
-export function BarMeterPanel({ panel }: { panel: BarMeterData; level: number }) {
+export function BarMeterPanel({
+  panel,
+  poweredOff,
+}: {
+  panel: BarMeterData;
+  level: number;
+  poweredOff: boolean;
+}) {
   // Subscribe to the derived, clamped value (re-renders only when it changes).
   const value = useRuntime((s) => {
     const raw = Math.round(evalExpr(panel.value, s.registry));
@@ -42,7 +49,8 @@ export function BarMeterPanel({ panel }: { panel: BarMeterData; level: number })
 
   const subtype = resolveSubtype('metallic', 'barmeter', panel.subtype);
   const span = panel.max - panel.min;
-  const frac = span > 0 ? (value - panel.min) / span : 0;
+  // Powered-off meters rest at the minimum.
+  const frac = poweredOff || span <= 0 ? 0 : (value - panel.min) / span;
   // Spacing between value bars, as a fraction of the box length.
   const tickFrac = span > 0 ? Math.min(0.5, Math.max(0.02, panel.step / span)) : 0.1;
 

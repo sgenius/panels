@@ -52,6 +52,11 @@ body,
   min-height: 0;
 }
 
+/* A panel forced off by a sibling Power panel reads as dimmed/dead. */
+.frame-leaf.powered-off .panel {
+  filter: brightness(0.74) saturate(0.5);
+}
+
 /* ---- Metallic panel plate ---- */
 
 .panel {

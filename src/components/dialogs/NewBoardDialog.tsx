@@ -13,6 +13,7 @@ interface Props {
 export function NewBoardDialog({ params, onCreate, onClose }: Props) {
   const [maxDepth, setMaxDepth] = useState(params.maxDepth);
   const [blink, setBlink] = useState(params.blinkProbability);
+  const [power, setPower] = useState(params.powerProbability);
   const [minCols, setMinCols] = useState(params.grid.minCols);
   const [maxCols, setMaxCols] = useState(params.grid.maxCols);
   const [minRows, setMinRows] = useState(params.grid.minRows);
@@ -23,6 +24,7 @@ export function NewBoardDialog({ params, onCreate, onClose }: Props) {
     onCreate({
       maxDepth,
       blinkProbability: blink,
+      powerProbability: power,
       maxNodes,
       grid: {
         minCols: Math.min(minCols, maxCols),
@@ -60,6 +62,20 @@ export function NewBoardDialog({ params, onCreate, onClose }: Props) {
             onChange={(e) => setBlink(Number(e.target.value))}
           />
           <span className="range-value">{Math.round(blink * 100)}%</span>
+        </div>
+      </div>
+      <div className="dialog-field">
+        <label className="dialog-label">Power chance</label>
+        <div className="dialog-control">
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={power}
+            onChange={(e) => setPower(Number(e.target.value))}
+          />
+          <span className="range-value">{Math.round(power * 100)}%</span>
         </div>
       </div>
       <Num label="Columns: min" value={minCols} min={1} max={6} onChange={setMinCols} />

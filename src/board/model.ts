@@ -91,6 +91,7 @@ export interface GridBounds {
 export interface GenerationParams {
   maxDepth: number; // 1..6
   blinkProbability: number; // 0..1
+  powerProbability: number; // 0..1 chance a button/switch becomes a Power panel
   grid: GridBounds;
   maxNodes: number; // soft cap on total nodes
 }
@@ -98,6 +99,7 @@ export interface GenerationParams {
 export const DEFAULT_GENERATION_PARAMS: GenerationParams = {
   maxDepth: 4,
   blinkProbability: 0.5,
+  powerProbability: 0.1,
   grid: { minCols: 1, maxCols: 6, minRows: 1, maxRows: 4 },
   maxNodes: 120,
 };

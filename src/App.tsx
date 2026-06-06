@@ -5,7 +5,7 @@ import type { BoardConfig, GenerationParams, Panel, ThemeId } from './board/mode
 import { DEFAULT_GENERATION_PARAMS } from './board/model';
 import { generateBoard } from './board/generate';
 import { makeRng, randomSeed } from './board/prng';
-import { getPanelByPath, updatePanelByPath } from './board/tree';
+import { collectPowerKeys, getPanelByPath, updatePanelByPath } from './board/tree';
 import { deserializeFromHash, readHash, writeHash } from './serialize/url';
 import { applyThemeColors, defaultColors } from './theme/metallic';
 import { useRuntime } from './runtime/store';
@@ -45,11 +45,17 @@ function loadOrCreate(params: GenerationParams): BoardConfig {
 
 export default function App() {
   const [params, setParams] = useState<GenerationParams>(DEFAULT_GENERATION_PARAMS);
-  const [config, setConfig] = useState<BoardConfig>(() => loadOrCreate(DEFAULT_GENERATION_PARAMS));
+  const [config, setConfig] = useState<BoardConfig>(() => {
+    const c = loadOrCreate(DEFAULT_GENERATION_PARAMS);
+    const { buttons, switches } = collectPowerKeys(c.root);
+    useRuntime.getState().primePower(buttons, switches); // Power panels start on
+    return c;
+  });
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [dialog, setDialog] = useState<DialogState>(null);
   const resetRuntime = useRuntime((s) => s.reset);
   const setSharedText = useRuntime((s) => s.setSharedText);
+  const primePower = useRuntime((s) => s.primePower);
 
   useTickEngine();
 
@@ -68,9 +74,11 @@ export default function App() {
     (p: GenerationParams) => {
       const fresh = createBoard(p, config.theme, config.colors);
       resetRuntime();
+      const { buttons, switches } = collectPowerKeys(fresh.root);
+      primePower(buttons, switches);
       commit(fresh);
     },
-    [commit, config.theme, config.colors, resetRuntime],
+    [commit, config.theme, config.colors, resetRuntime, primePower],
   );
 
   const applyPanel = useCallback(

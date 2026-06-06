@@ -15,6 +15,8 @@ interface RuntimeState {
   toggleButton: (key: string) => void;
   toggleSwitch: (key: string) => void;
   setOn: (kind: 'button' | 'switch', key: string, on: boolean) => void;
+  // Set the given button/switch keys "on" (used to start Power panels on).
+  primePower: (buttonKeys: string[], switchKeys: string[]) => void;
   setSharedText: (key: string, text: string) => void;
   reset: () => void;
 }
@@ -62,6 +64,14 @@ export const useRuntime = create<RuntimeState>((set) => ({
         ? { buttonOn: { ...s.buttonOn, [key]: on } }
         : { switchOn: { ...s.switchOn, [key]: on } },
     ),
+  primePower: (buttonKeys, switchKeys) =>
+    set((s) => {
+      const buttonOn = { ...s.buttonOn };
+      const switchOn = { ...s.switchOn };
+      for (const k of buttonKeys) buttonOn[k] = true;
+      for (const k of switchKeys) switchOn[k] = true;
+      return { buttonOn, switchOn };
+    }),
   setSharedText: (key, text) => set((s) => ({ sharedText: { ...s.sharedText, [key]: text } })),
   reset: () => set({ tick: 0, registry: freshRegistry(), buttonOn: {}, switchOn: {}, sharedText: {} }),
 }));

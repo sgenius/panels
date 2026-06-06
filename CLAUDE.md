@@ -63,7 +63,8 @@ State is split into two intentionally separate domains:
 ```
 src/
   board/      model.ts (types + constants), prng.ts (seedable mulberry32),
-              text.ts (Latin-1-biased random labels), generate.ts (recursive gen)
+              text.ts (Latin-1-biased random labels), generate.ts (recursive gen),
+              tree.ts (path get/update + power-panel helpers)
   runtime/    store.ts (Zustand: tick+registry), tick.ts (useTickEngine, TICK_MS)
   serialize/  encode.ts, decode.ts (DFS), url.ts (hash <-> BoardConfig)
   theme/      metallic.ts (theme + 8 colors as CSS vars), theme.css
@@ -83,6 +84,19 @@ src/
   (short axis small, long axis sized to square things up). This is what prevents skinny
   cells — applied to ALL node cells, not just already-skinny ones, because skinny
   *leaves* are created by the *parent's* grid choice.
+- **Panel types**: blank, LED (regular/rhythmic), button, **flick switch** (`S`,
+  user-only on/off in the store), **bar meter** (`M`, value derived from the registry;
+  orientation from cell aspect via container query; subtype 0=thermometer/fill,
+  1=radio/stick). **Subtypes** are theme-declared with round-robin fallback
+  (`theme/metallic.ts resolveSubtype`).
+- **Power panels** (`board/tree.ts`, `Frame.tsx`): a button/switch whose text is a
+  trigger (`on`/`off`/`on/off`/`power`, case-insensitive) is a Power panel — derived
+  from text only, no dedicated token. If a Power child is off, its siblings and their
+  subtrees render forced-off (OR across multiple); **Power panels are exempt** (never
+  powered off — `Frame` passes `poweredOff=false` to power children). System-created
+  Power panels start on (`store.primePower`, called from `App` on load/new-board).
+  Bar-meter `min`/`max` may be negative; serialized with an `n` prefix (the `-` is the
+  token delimiter, like `s` for subtract in value expressions).
 - **Registry tick** (`runtime/store.ts advance`): the LAST registry value is a counter
   (+1 each tick, wraps at 255). Each tick changes **2–4** of the remaining pool values,
   with **index 0 always** among them. Selection uses a **shuffle** of the other pool

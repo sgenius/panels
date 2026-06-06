@@ -25,7 +25,15 @@ function Label({ text, pos, at }: { text: string; pos: TextPos; at: TextPos }) {
   return <span className="panel-label">{text}</span>;
 }
 
-export function LedPanel({ panel, level }: { panel: LedPanelData; level: number }) {
+export function LedPanel({
+  panel,
+  level,
+  poweredOff,
+}: {
+  panel: LedPanelData;
+  level: number;
+  poweredOff: boolean;
+}) {
   // Subscribe only to the slice that drives this LED.
   const driver = useRuntime((s) =>
     panel.mode === 'regular' ? s.registry[panel.registryIndex] : s.tick,
@@ -43,7 +51,7 @@ export function LedPanel({ panel, level }: { panel: LedPanelData; level: number 
     }
   }
 
-  const on = colorIndex >= 0;
+  const on = colorIndex >= 0 && !poweredOff; // powered-off LEDs are dark
   const pos = effectiveTextPos(panel.textPos, level);
 
   return (

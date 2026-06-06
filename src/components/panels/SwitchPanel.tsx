@@ -6,8 +6,16 @@ import { useRuntime } from '../../runtime/store';
 
 type SwitchPanelData = Extract<Panel, { type: 'switch' }>;
 
-export function SwitchPanel({ panel }: { panel: SwitchPanelData; level: number }) {
-  const on = useRuntime((s) => !!s.switchOn[panel.stateKey]);
+export function SwitchPanel({
+  panel,
+  poweredOff,
+}: {
+  panel: SwitchPanelData;
+  level: number;
+  poweredOff: boolean;
+}) {
+  const storeOn = useRuntime((s) => !!s.switchOn[panel.stateKey]);
+  const on = storeOn && !poweredOff; // powered-off switches show the off position
   const toggle = useRuntime((s) => s.toggleSwitch);
 
   const classes = ['switch', panel.orientation === 'h' ? 'horizontal' : 'vertical', on ? 'on' : 'off'].join(' ');

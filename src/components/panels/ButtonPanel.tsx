@@ -13,8 +13,17 @@ function colorVar(index: number): string {
   return `var(--color-${index})`;
 }
 
-export function ButtonPanel({ panel, level }: { panel: ButtonPanelData; level: number }) {
-  const on = useRuntime((s) => !!s.buttonOn[panel.sharedTextKey]);
+export function ButtonPanel({
+  panel,
+  level,
+  poweredOff,
+}: {
+  panel: ButtonPanelData;
+  level: number;
+  poweredOff: boolean;
+}) {
+  const storeOn = useRuntime((s) => !!s.buttonOn[panel.sharedTextKey]);
+  const on = storeOn && !poweredOff; // powered-off buttons show up (not depressed)
   const text = useRuntime((s) => s.sharedText[panel.sharedTextKey] ?? panel.text);
   const toggle = useRuntime((s) => s.toggleButton);
   const setSharedText = useRuntime((s) => s.setSharedText);
