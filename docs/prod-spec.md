@@ -1,5 +1,7 @@
 # Panels App - A visual toy
 
+**Note: This document was manually written by me. Claude read it as main source of truth and generated the [tech spec](./tech-spec.md) based on it. -F. López**
+
 This document describes the Panels App product, a web-based frontend-only app.
 
 Panels App is an "interface toy" inspired in sci-fi and retro-sci-fi control panels. It will generate pseudo-random interfaces by arranging different types of "panels" on screen, on pseudo-random layouts. The shape and contents of each layout is preserved in URL state, so users can recreate it later.

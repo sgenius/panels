@@ -1,5 +1,7 @@
 # Panels App — Technical Specification & Implementation Plan
 
+**Note: This document was generated through Claude. Implementation differs a bit from the product spec to match suggestions done by the LLM and approved by me. - F.López**
+
 This document translates [`prod-spec.md`](./prod-spec.md) into a technical plan: the
 rendering technology decision, the architecture, the data model, and a phased
 implementation roadmap.
