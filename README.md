@@ -62,6 +62,16 @@ The build uses **relative asset paths** (`base: './'` in
 [`vite.config.ts`](vite.config.ts)), so it works whether it's served from a domain root
 or a subpath (e.g. a GitHub Pages project URL).
 
+### Automatic deploy via GitHub Pages
+
+This repo includes a GitHub Actions workflow
+([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)) that builds and runs
+the tests on every push/PR, and **deploys to GitHub Pages** on pushes to the default
+branch (`main` or `master`).
+
+One-time setup: in the repository's **Settings → Pages**, set **Source** to
+**GitHub Actions**. After the next push, the site publishes to your Pages URL.
+
 ## Project structure
 
 ```
