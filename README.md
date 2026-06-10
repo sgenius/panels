@@ -1,5 +1,9 @@
 # Panels
 
+[![Build & Deploy](https://github.com/OWNER/REPO/actions/workflows/deploy.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/deploy.yml)
+
+<!-- Replace OWNER/REPO above with your GitHub org/user and repository name. -->
+
 An **interface toy**: a frontend-only React app that generates pseudo-random
 sci-fi / retro control-panel UIs. A recursive tree of grid **frames** holds
 **panels** — LEDs, buttons, flick switches, bar meters, and blanks — styled with a
