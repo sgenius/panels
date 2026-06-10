@@ -76,6 +76,12 @@ branch (`main` or `master`).
 One-time setup: in the repository's **Settings → Pages**, set **Source** to
 **GitHub Actions**. After the next push, the site publishes to your Pages URL.
 
+> **Important:** use the **GitHub Actions** source, *not* "Deploy from a branch."
+> The workflow builds the app and publishes the contents of `dist/` (so the served
+> `/index.html` is the built `dist/index.html`). The `index.html` at the repo root is
+> only Vite's dev entry point — serving the repo root directly (as branch deploys do)
+> would not work.
+
 ## Project structure
 
 ```

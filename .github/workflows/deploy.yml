@@ -37,8 +37,13 @@ jobs:
           npm run build
           npm test
 
+      - name: Configure Pages
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: actions/configure-pages@v5
+
       - name: Upload Pages artifact
-        # Only need the artifact when we're going to deploy.
+        # Uploads the CONTENTS of dist/ (not the folder), so the built
+        # dist/index.html is served as the site root's /index.html.
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         uses: actions/upload-pages-artifact@v3
         with:
