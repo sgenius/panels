@@ -1,8 +1,8 @@
 # Panels
 
-[![Build & Deploy](https://github.com/OWNER/REPO/actions/workflows/deploy.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/deploy.yml)
+[![Build & Deploy](https://github.com/sgenius/panels/actions/workflows/deploy.yml/badge.svg)](https://github.com/sgenius/panels/actions/workflows/deploy.yml)
 
-<!-- Replace OWNER/REPO above with your GitHub org/user and repository name. -->
+**Note: This is one of a number of experiments in safe vibe-coding using Claude. Most content is generated. -F. López**
 
 An **interface toy**: a frontend-only React app that generates pseudo-random
 sci-fi / retro control-panel UIs. A recursive tree of grid **frames** holds
